@@ -7,7 +7,6 @@ class Response
 	//TODO: Create the static factory method(s)
 
 	//TODO: Define the variables needed in a response
-
 	public $Cookies = null;
 	public $Headers = array();
 	public $Output = null;
@@ -15,7 +14,6 @@ class Response
 
 	public function __construct($headers, &$cookieMgr)
 	{
-		//TODO: create an HTTP Response object here
 		$this->Cookies =& $cookieMgr;
 		$this->Headers = $headers;
 		$this->Output = '';
@@ -24,6 +22,16 @@ class Response
 	public function &code($code) {
 		$this->Code = $code;
 
+		return $this;
+	}
+
+	public function &setHeader($key, $val) {
+		$this->Headers[$key] = $val;
+		return $this;
+	}
+
+	public function &unsetHeader($key) {
+		unset($this->Headers[$key]);
 		return $this;
 	}
 
@@ -45,7 +53,16 @@ class Response
 		return $this;
 	}
 
-	public function send() {
+	public function &template($template, $data=array()) {
+		
+	}
 
+	public function send() {
+		http_response_code($this->Code);
+		foreach ($this->Headers as $key => $val) {
+			header($key . ': ' . $val);
+		}
+
+		print($this->Output);
 	}
 }

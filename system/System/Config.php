@@ -3,6 +3,7 @@
 namespace Mojo\System;
 
 
+class ConfigFileNotFoundException extends \Exception {}
 class ConfigFileNotLoadedException extends \Exception {}
 class ConfigNotFoundException extends \Exception {}
 
@@ -18,9 +19,14 @@ class Config {
 			$alias = $name;
 
 		if (isset(self::$_configs[$alias]))
-			return;
+			return false;
 
-		self::$_configs[$alias] = include CONFIG_DIR . $name . '.php';
+		try {
+			self::$_configs[$alias] = include CONFIG_DIR . $name . '.php';
+			return true;
+		} catch (Exception $e) {
+			throw new ConfigFileNotFoundException('The config file "' . $name . '.php' . '" not found in the app/configs directory.');
+		}
 	}
 
 	public static function get($name, $file='app') {

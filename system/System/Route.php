@@ -3,6 +3,7 @@
 namespace Mojo\System;
 
 use Mojo\IO\Net\Http\Request;
+use Mojo\System\Controller;
 
 class Route
 {
@@ -50,9 +51,15 @@ class Route
 	 */
 	public function callHandler(&$req, &$res)
 	{
-		//print("callHandler. \n");
 		if (is_string($this->Handler) || is_callable($this->Handler)) {
 			return call_user_func_array($this->Handler, array(&$req, &$res));
+		} elseif ($this->Handler instanceof Controller) {
+			return $this->Handler->_handle_req($req, $res);
+		} elseif (is_array($this->Handler)) {
+			$class = "App\\Controllers\\" . $this->Handler[0];
+			$method = $this->Handler[1];
+			$ctl = new $class();
+			$ctl->$method($req, $res);
 		}
 	}
 

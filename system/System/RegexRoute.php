@@ -92,9 +92,8 @@ class RegexRoute extends Route
 		}
 
 
-		if (is_string($this->Handler)) {
-			return call_user_func_array($this->Handler, array(&$req, &$res));
-		}
+		// Send to parent class handler
+		return parent::callHandler($req, $res);
 	}
 
 }

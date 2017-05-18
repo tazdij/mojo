@@ -37,8 +37,13 @@ class CookieManager {
         //  request pipeline, prior to the response be sent?
 
         // TEMP: we will just send the cookie now, for simplicities sake
-        setcookie($name, $value, $expires);
+        setcookie($name, $value, time()+$expires);
         $this->Cookies[$name] = $value;
+    }
+
+    public function delete($name) {
+        setcookie($name, '', -1);
+        unset($this->Cookies[$name]);
     }
 
 }

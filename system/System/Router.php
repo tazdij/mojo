@@ -10,7 +10,7 @@ class Router
 
 	private static $Routes = array();
 
-	public static function add(&$route)
+	public static function add($route)
 	{
 		if ( !($route instanceof Mojo\System\Route) ) {
 
@@ -39,6 +39,7 @@ class Router
 		return $matched;
 	}
 
+	/* ?Is this even used? */
 	public static function routeRequest(&$request)
 	{
 		foreach (self::$Routes as &$route) {

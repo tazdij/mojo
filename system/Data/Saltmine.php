@@ -1,9 +1,14 @@
 <?php
 
 class Saltmine {
-    
 
-    public function query($str) {
+    private static $token = null;
+
+    private static function connect() {
+        
+    }
+
+    public static function query($str) {
 
     }
 
