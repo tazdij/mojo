@@ -13,15 +13,15 @@ class Log {
 
     public static $messages = array();
 
-    public static error($msg) {
+    public static function error($msg) {
         
     }
 
-    public static warn() {
+    public static function warn() {
 
     }
 
-    public static info() {
+    public static function info() {
 
     }
 

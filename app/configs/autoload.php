@@ -3,7 +3,6 @@
 
 return array(
     'helpers' => array('forms'),
-    'libraries' => array(),
-
-
+    'libraries' => array('session'),
+    'models' => array(),
 );

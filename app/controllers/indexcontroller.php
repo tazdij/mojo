@@ -9,6 +9,14 @@ class IndexController extends Controller {
     public function index(&$req, &$res) {
         print('INDEX::INDEX Ran<br><br>');
 
+        $this->session->printer('This is a test<br><br>');
+
+        //$con = new Con('10.138.236.115', 'barberbookyapi', 'MY_GamB1t', 'barberbookyapp', '');
+        $this->loadModel('User');
+
+        $providers = $this->user_model->get_providers();
+        print_r($providers);
+
         // TEST: Forms helper nonce (used to stop form spam)
         //$token = forms_create_nonce('testing');
         //$data = forms_validate_nonce('testing', $token);

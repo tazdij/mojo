@@ -11,6 +11,7 @@ class Response
 	public $Headers = array();
 	public $Output = null;
 	public $Code = 200;
+	public $Charset = 'utf8';
 
 	public function __construct($headers, &$cookieMgr)
 	{
@@ -36,7 +37,7 @@ class Response
 	}
 
 	public function &json($content) {
-		$this->Headers['Content-Type'] = 'application/json; charset=' . $charset;
+		$this->Headers['Content-Type'] = 'application/json; charset=' . $this->Charset;
 		if (!is_string($content)) {
 			$this->Output = json_encode($content);
 		} else {

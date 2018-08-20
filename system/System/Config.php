@@ -31,12 +31,25 @@ class Config {
 
 	public static function get($name, $file='app') {
 		if (!isset(self::$_configs[$file]))
-			throw new ConfigFileNotLoadedException('The config file "' . $file . '" has not been loaded yet.');
+			if (!self::load($file))
+				throw new ConfigFileNotLoadedException('The config file "' . $file . '" has not been loaded yet.');
 
 
 		if (!isset(self::$_configs[$file][$name]))
 			throw new ConfigNotFoundException('The option "' . $name . '" in file "' . $file . '" not found.');
 
 		return self::$_configs[$file][$name];
+	}
+
+	public static function getAll($file='app') {
+		if (!isset(self::$_configs[$file]))
+			if (!self::load($file))
+				throw new ConfigFileNotLoadedException('The config file "' . $file . '" has not been loaded yet.');
+
+
+		if (!isset(self::$_configs[$file]))
+			throw new ConfigNotFoundException('The file "' . $file . '" was not found.');
+
+		return self::$_configs[$file];
 	}
 }

@@ -54,7 +54,7 @@ class RequestPipe
 		//} while(!$handled);
 
 		//var_dump($routes);
-
+		$response->send();
 
 
 	}

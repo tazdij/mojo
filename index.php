@@ -17,15 +17,6 @@ use Mojo\System\RegexRoute;
 // quite on favicon request
 if ($_SERVER['REQUEST_URI'] == '/favicon.ico') { die(); }
 
-//TEST: Testing Session Start
-session_start();
-
-if (!isset($_SESSION['count'])) {
-    $_SESSION['count'] = 0;
-} else {
-    $_SESSION['count']++;
-}
-//END TEST: End Testing Session
 
 // Insert a test cookie to check if the cookie manager is picking them up.
 //setcookie('testcookie', 'testcookievalue', time()+7200);

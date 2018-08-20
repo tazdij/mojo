@@ -46,6 +46,8 @@ class Request
 		}
 
 		$post_data = PostData::CreateFromInitialRequest();
+
+		print_r($post_data);
 		$cookie_manager = CookieManager::CreateFromInitialRequest();
 
 		$request = new Request($verb, $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI'], $_SERVER['QUERY_STRING'], $post_data, $cookie_manager, isset($_SESSION) ? $_SESSION : array());
