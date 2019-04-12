@@ -36,6 +36,10 @@ class Controller {
         $varname = strtolower($model) . '_model';
         $this->$varname = new $classname($db);
     }
+    
+    public function loadView($file, $data=NULL, $return=FALSE, $extension=NULL) {
+        
+    }
 
     public function _handle_req(&$req, &$res) {
         try {

@@ -1,5 +1,6 @@
 <?php
 
+
 ini_set('html_errors', '1');
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
@@ -23,7 +24,9 @@ if ($_SERVER['REQUEST_URI'] == '/favicon.ico') { die(); }
 //setcookie('testcookie2', 'testcookie2value___', time()+7200);
 
 // Require the bootstraper
-require_once dirname($_SERVER['SCRIPT_FILENAME']) . DIRECTORY_SEPARATOR . 'bootstrap.php';
+require_once dirname($_SERVER['SCRIPT_FILENAME']) . DIRECTORY_SEPARATOR . 'paths.php';
+
+require_once SYSTEM_DIR . 'bootstrap.php';
 
 // Create the initial Http\Request
 $request = Request::CreateInitialRequest();
@@ -31,6 +34,16 @@ $request = Request::CreateInitialRequest();
 // Load in the configuration system
 Config::load('app');
 Config::load('autoload');
+
+// Load and run Extensions
+$extensions = Config::get('extensions', 'autoload');
+if (count($extensions) > 0) {
+    foreach ($extensions as $extension) {
+        //TODO: load the extension
+        $class_name = "Ext\\" . $extension . "\\" . $extension;
+        $obj = new $class_name();
+    }
+}
 
 // Load Helpers from autoload
 $helpers = Config::get('helpers', 'autoload');
@@ -43,50 +56,6 @@ if (count($helpers) > 0) {
 Config::load('routes');
 
 
-function mojo_blahHandler(&$req, &$res) {
-    print('Called handler -> mojo_blahHandler' . "\n");
-    return true;
-}
-
-function mojo_testPost(&$req, &$res) {
-    print('mojo_testPost.' . "\n");
-    print_r($_COOKIE);
-
-    print("test getting post data. \n");
-    print("field: " . $req->Body->get('field') . "\n");
-
-    print_r($req);
-
-
-    return true;
-}
-
-function mojo_aboutNewHandler(&$req, &$res) {
-	print 'About -> New Handler' . "\n";
-
-    return true;
-}
-
-function mojo_aboutUpdateHandler(&$req, &$res) {
-	print 'About -> Update Handler' . "\n";
-
-    return true;
-}
-
-function mojo_cookiesHandler(&$req, &$res) {
-    // Try and delete the cookies
-    $req->Cookies->delete('testcookie');
-    $req->Cookies->delete('testcookie2');
-
-
-    $req->Cookies->set('cookiepage', 'other val');
-
-    print('Cookies -> Handler');
-
-
-
-    return true;
-}
 
 class TestController extends \Mojo\System\Controller {
 
@@ -122,12 +91,14 @@ Router::add(new Route(Request::GET, '/', function(&$req, &$res) {
 }));
 */
 //Router::add(new Route(Request::POST, '/', 'mojo_testPost'));
+/*
 Router::add(new RegexRoute(Request::POST, '/i/(?<name>[a-zA-Z]+)', 'mojo_testPost'));
 Router::add(new RegexRoute(Request::GET | Request::POST, '/about', 'mojo_aboutNewHandler'));
 Router::add(new RegexRoute(Request::GET, '/about/(?<name>[a-zA-Z0-9]+)', 'mojo_aboutNewHandler'));
 Router::add(new RegexRoute(Request::GET, '/about/(?<name>[a-zA-Z0-9\.\-_]+)', 'mojo_aboutUpdateHandler'));
 Router::add(new Route(Request::POST, '/set/about', 'mojo_aboutUpdateHandler'));
 Router::add(new RegexRoute(Request::GET, '/cookies', 'mojo_cookiesHandler'));
+*/
 Router::add(new RegexRoute(Request::GET, '/hm', new TestController()));
 
 

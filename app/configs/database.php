@@ -1,11 +1,11 @@
 <?php
 
 return array(
-    'host' => '10.138.236.115',
+    'host' => 'localhost',
     'port' => 3306,
-    'user' => 'barberbookyapi',
+    'user' => 'rvparkweb',
     'pass' => 'MY_GamB1t',
     'charset' => 'utf8',
-    'database' => 'barberbookyapp',
+    'database' => 'rvparkweb',
     'prefix' => '',
 );

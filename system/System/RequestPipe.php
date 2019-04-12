@@ -15,13 +15,12 @@ class RequestPipe
 	 *	is exited, the response should be sent back to the browser.
 	 *
 	 */
-	public static function processRequest(&$request)
+	public static function processRequest(&$request, $return = FALSE)
 	{
 		$response = new Response(array(), $request->Cookies);
 
 		// Get the list of Routes this matches
 		$routes = Router::matchRequest($request);
-
 
 		foreach ($routes as &$route) {
 			if ($route->callHandler($request, $response)) {
@@ -53,10 +52,16 @@ class RequestPipe
 		//	$handled =
 		//} while(!$handled);
 
-		//var_dump($routes);
-		$response->send();
+		// If not a return, send to browser
+		if (!$return)
+    		$response->send();
+    	else
+    	    // Return to requestor (probably a sub request)
+    	    return $response;
 
 
 	}
+
+    
 
 }

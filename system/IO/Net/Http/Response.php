@@ -54,7 +54,7 @@ class Response
 		return $this;
 	}
 
-	public function &template($template, $data=array()) {
+	public function &template($template, $data=array(), $return=FALSE) {
 		
 	}
 

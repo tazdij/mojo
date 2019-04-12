@@ -63,7 +63,7 @@ class EventManager {
 			}
 
 		} else {
-			throw new InvalidEventListenerException("Object of '" . get_class($listener) . "' does not implement Mojave\\Event\\IListener.");
+			throw new InvalidEventListenerException("Object of '" . get_class($listener) . "' does not implement Mojo\\Event\\IListener.");
 		}
 	}
 

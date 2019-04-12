@@ -11,7 +11,7 @@ class AuthController extends Controller {
 
         $this->loadModel('User');
 
-        $hash = $this->user_model->validateLogin($res->Body->get('username'), $res->Body->get('password'));
+        $hash = $this->user_model->validateLogin($req->Body->get('username'), $req->Body->get('password'));
 
         $res->json(array('passhash'=>$hash));
 
