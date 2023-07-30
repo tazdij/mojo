@@ -70,7 +70,7 @@ class Model {
     protected $db;
 
     public function __construct($db_ident='default') {
-        $this->db =& SQLDB::get($db_ident);
+        $this->db = SQLDB::get($db_ident);
     }
 
 }

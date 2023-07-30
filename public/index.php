@@ -5,6 +5,7 @@ ini_set('html_errors', '1');
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
+
 use Mojo\System\Config;
 use Mojo\System\Connections;
 use Mojo\System\Helper;
@@ -32,9 +33,14 @@ if ($_SERVER['REQUEST_URI'] == '/favicon.ico') { die(); }
 //$_SERVER['SCRIPT_FILENAME']
 
 // Require the startup path config & bootstraper
-require_once dirname(__FILE__, 2) . DIRECTORY_SEPARATOR . 'paths.php';
+require_once dirname($_SERVER['SCRIPT_FILENAME'], 2) . DIRECTORY_SEPARATOR . 'paths.php';
+
 
 require_once SYSTEM_DIR . 'bootstrap.php';
+
+//print(ROOT_DIR . "\n");
+
+//print_r($_SERVER);
 
 
 /**
@@ -82,7 +88,8 @@ if (count($extensions) > 0) {
         try {
             $obj = new $class_name();
         } catch (Exception $e) {
-            print($e->getMessage());
+            //print($e->getMessage());
+            throw new Exception("Failed to load extension: " . $extension . "\nError Received: " . $e->getMessage());
         }
     }
 }

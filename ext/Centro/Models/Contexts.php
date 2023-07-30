@@ -13,8 +13,6 @@ class Contexts extends Model {
     protected static $_instances = [];
 
     public static function Inst($id='default') : Contexts {
-		
-
 		return parent::Inst($id);
 	}
 
@@ -53,10 +51,17 @@ class Contexts extends Model {
         return bin2hex($context_id);
     }
 
+    public function getAll() {
+        $rs = $this->db->select(DB_ALL)->from('context')->exec();
+        return $rs;
+    }
+
     public function getNextPriority() {
         $rs = $this->db->select(['Priority'])->from('context')->orderBy('Priority', DB_DESC)->limit(1)->exec();
         if (count($rs) > 0) {
             return (int)$rs[0]['Priority'] + 1;
+        } else {
+            return 1;
         }
     }
 

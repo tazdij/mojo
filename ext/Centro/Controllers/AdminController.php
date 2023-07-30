@@ -25,9 +25,11 @@ class AdminController extends Controller {
         //$db = new Orm(Con::get());
         $db = SQLDB::get(); // Get the default shared Orm object
 
-        $ctxs = $db->select(DB_ALL)->from('context')->exec();
+        //$ctxs = $db->select(DB_ALL)->from('context')->exec();
 
         //print_r($ctxs);
+
+        $ctxs = Models\Contexts::Inst()->getAll();
 
         $engine = $res->getTemplateEngine();
         //var_dump($engine);
