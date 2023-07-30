@@ -1,4 +1,12 @@
 <?php
+
+namespace Mojo\Data\Mysql;
+
+use \PDO;
+use \Exception;
+
+
+
 /*
  * TDBQuery.class
  * 	Developed By: Donald Duvall (DEDuvall, VallTek)
@@ -13,6 +21,10 @@
  * Injections.
  * 
  * Example Usage:
+ * 
+ * DIRECT QUERY:
+ * $rs = $qry->query('SELECT * FROM `table` WHERE `rec_id` = ?', [$rec_id]);
+ * 
  * SELECT:
  * $rs = $qry->select(array('name', 'lastname', 'desk_phone' => 'AsPhoneField'))
  * 		->from('contacts')
@@ -45,13 +57,59 @@
  * 							'company.phone' => 'CompanyPhone'))
  * 			->from('contacts')
  * 			->innerJoin('company')->on('company.companyID', DB_EQ, 'contacts.companyID')
- * 			// ->and('company.status', DB_EQ, 2) // Constants are not supported yet
+ * 			->and('company.status', DB_EQ, 2) // Constants are not supported yet
  * 			->exec();
 	
-*/
-namespace Mojo\Data\Mysql;
+PLANNED IMPROVEMENTS:
+  
+  --------------------------------------------------------------
+  IMPROVE RESULT FIELD MUTABILITY via SQL_Inject
+  Queries are currently very limited on their field result customizations, for example
+  $res = $this->db->select([
+	  			'rec_id', 
+				'app_id', 
+				'app_title', 
+				'app_description'])->from('apps')
+            ->where('app_id', DB_EQ, DB::Bin($app_id_bin))
+            ->exec();
+	
+  IMPROVED for mutating data as it is stream out
+  $res = $this->db->select([
+	  			'rec_id', 
+				DB::Inject('HEX', 'app_id'),				// implicit rename to field name?
+				'app_title', 
+				'app_description'])->from('apps')
+            ->where('app_id', DB_EQ, DB::Bin($app_id_bin))
+            ->exec();
 
-use Mojo\Data\Mysql\Con;
+  Idealy this will produce something like:
+  SELECT
+    `rec_id`,
+	HEX(`app_id`) AS `app_id`,
+	`app_title`,
+	`app_description`
+  FROM `apps`
+  WHERE `app_id` = :sel_app_id1
+
+  This prepared statement would then have the binary app_id bound when executed, as normal.
+
+  *******************
+  * BONUS, along with this change, I would like to add the DB::Inject feature into Criteria.
+  this will likely give us even more options, and solutions during edge cases. 
+
+  $res = $this->db->select([
+	  			'rec_id', 
+				DB::Inject('HEX', 'app_id'),				// implicit rename to field name?
+				'app_title', 
+				'app_description'])->from('apps')
+            ->where('app_id', DB_EQ, DB::Inject('UNHEX', $app_id_hex))
+            ->exec();
+
+  ---------------------------------------------------------------
+
+
+*/
+
 
 //Define Operators
 define('DB_LT', 1);
@@ -86,9 +144,196 @@ define('DB_CROSSJOIN', 8);
 define('DB_ASC', 'ASC');
 define('DB_DESC', 'DESC');
 
+//Define Result Types
+define('DB_RS', 1);
+define('DB_ROW', 2);
+define('DB_VAR', 3);
+//define('DB_NONE', 4);
 
-class Orm
-{
+
+//TODO: 
+
+
+/**
+ * A simple class to allow the builder to know that the code, wants to insert a SQL Call into the
+ * generated sql statement, possibly Wrapping a value or Column.
+ */
+class DB_SQL_Inject {
+	public $_sql_function;
+	public $_params = [];
+	
+	public function __construct($func, $params=[]) {
+
+		// The string name of the MySQL function
+		$this->_sql_function = (string)$func;
+
+		// An array of Values, or Additional SQL_Inject objects. (allowing nesting)
+		$this->_params = $params;
+	}
+
+	public function renderSql() {
+		$sql = $this->_sql_function . '(' . ' ';
+
+		// loop adding args, and nested SQL_Injects
+		$arg_str = '';
+		foreach ($this->_params as $param) {
+			if ($param instanceof DB_SQL_Inject) {
+				// This is a nested call
+				$arg_str .= $param->renderSql();
+			} else {
+				if     (is_numeric($param)) {
+					$arg_str .= (string)$param;
+				} 
+				elseif (is_null($param)) {
+					$arg_str .= 'NULL';
+				}
+				elseif ($param === TRUE) {
+					$arg_str .= 'TRUE';
+				}
+				elseif ($param === FALSE) {
+					$arg_str .= 'FALSE';
+				}
+				else {
+					$arg_str .= "'" . (string)$param . "'";
+				}
+			}
+
+			$arg_str .= ', ';
+		}
+		$sql .= substr($arg_str, 0, -2);
+
+		$sql .= ' )';
+
+		return $sql;
+	}
+}
+
+
+// Some Helper constants for MYSQL Injections into the QueryBuilder methods
+// maybe global functions, instead?
+
+// These functions will trigger the builder to inject the appropriate SQL syntax to run these
+// commands on the server
+//function db_bin_uuid() {
+//	
+//}
+// These helper functions should be public static on DB::
+
+/**
+ * This class is used to ensure that the PDO and QueryBuilder, will use the correct
+ * driver methods for this specific value.
+ * 
+ * NOTE: 
+ *   Do not instantiate directly. Only via the DB:: static function helpers. The underlying
+ *   structure of this class and how it is interpreted will likely
+ *
+ * 
+ * USAGE: (public usage example, see DB Docs for more details)
+ *    //
+ *    $qry->insert('mytable')->set('first_name', DB::String('Don'))->exec();
+ */
+class DB_Typed_Value {
+	const TYPE_NULL = 0;
+	const TYPE_STR  = 1;
+	const TYPE_INT  = 2;
+	const TYPE_BIN  = 3;
+	const TYPE_BOOL = 4;
+	const TYPE_STR_NATL = 5;
+	const TYPE_STR_CHAR = 6;
+
+	public $_type;
+	public $_value;
+
+	public function __construct($type, $value) { 
+		$this->_type = $type;
+		$this->_value = $value;
+	}
+
+	public function GetValue() {
+		return $this->_value;
+	}
+
+	public function PDOParam() {
+		switch ($this->_type) {
+			case self::TYPE_BIN:
+				return PDO::PARAM_LOB;
+			case self::TYPE_NULL:
+				return PDO::PARAM_NULL;
+			case self::TYPE_BOOL:
+				return PDO::PARAM_BOOL;
+			case self::TYPE_INT:
+				return PDO::PARAM_INT;
+			case self::TYPE_STR:
+				return PDO::PARAM_STR;
+			case self::TYPE_STR_CHAR:
+				return PDO::PARAM_STR_CHAR;
+			case self::TYPE_STR_NATL:
+				return PDO::PARAM_STR_NATL;
+		}
+	}
+}
+
+
+
+class Orm {
+
+	public static function GenerateUUIDHex() {
+		return sprintf( '%04x%04x%04x%04x%04x%04x%04x%04x',
+			// 32 bits for "time_low"
+			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
+	
+			// 16 bits for "time_mid"
+			mt_rand( 0, 0xffff ),
+	
+			// 16 bits for "time_hi_and_version",
+			// four most significant bits holds version number 4
+			mt_rand( 0, 0x0fff ) | 0x4000,
+	
+			// 16 bits, 8 bits for "clk_seq_hi_res",
+			// 8 bits for "clk_seq_low",
+			// two most significant bits holds zero and one for variant DCE1.1
+			mt_rand( 0, 0x3fff ) | 0x8000,
+	
+			// 48 bits for "node"
+			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
+		);
+	}
+
+
+	/*****************************************************************
+	 * STATIC UTILITY/CONVENIENCE METHODS
+	 * To make a natural namespace like feel to the library's more
+	 * advanced features.
+	 ****************************************************************/
+
+	public static function Str($val) {
+		return new DB_Typed_Value(DB_Typed_Value::TYPE_STR, (string)$val);
+	}
+
+	public static function Bin($val) {
+		return new DB_Typed_Value(DB_Typed_Value::TYPE_BIN, $val);
+	}
+
+	public static function Int($val) {
+		return new DB_Typed_Value(DB_Typed_Value::TYPE_INT, $val);
+	}
+
+	public static function Bool($val) {
+		return new DB_Typed_Value(DB_Typed_Value::TYPE_BOOL, (bool)$val);
+	}
+
+	
+	public static function Func($func, $vals = []) {
+		return new DB_SQL_Inject($func, $vals);
+	}
+
+	public static function Guid() {
+		return new DB_Typed_Value(DB_Typed_Value::TYPE_BIN, hex2bin(self::GenerateUUIDHex()));
+	}
+
+
+
+
 	private $m_DBCon;
 	
 	public $m_Query = null;
@@ -117,6 +362,20 @@ class Orm
 	private $m_Set = array();
 	private $m_Table = null;
 	private $m_ChainMode = DB_NONE;
+
+	/* m_NextFieldIdent
+	 * A variable the increments, and gives the next number to add to query
+	 * builder set structure.
+	 * NOTE: the old implementation used a random(20000)
+	*/
+	private $m_NextFieldIdent = 1;
+
+	// Performance Improvement for interative operations
+	//TODO: Add a Query Hash Check, and Cache Prepared Statements
+	//	It might be worthwhile to generate a SQL statement checksum or hash
+	//  and compare it to our current QueryBuilder STATE, and if matched
+	//  skip to the bind, and reuse our previously prepared statement...
+	//  EXEC SHOULD MAKE THIS OPTIONAL, VIA FLAG
 	
 	/* m_Join
 	 * This is not exactly decided how it will work yet
@@ -151,7 +410,7 @@ class Orm
 	
 	
 	
-	public function __construct($con)
+	public function __construct(Con $con)
 	{
 		// Get database configurations
 		
@@ -189,12 +448,12 @@ class Orm
 		
 		if ($this->m_Statement->execute($params))
 		{
-			$rs = $this->m_Statement->fetchAll(\PDO::FETCH_ASSOC);
+			$rs = $this->m_Statement->fetchAll(PDO::FETCH_ASSOC);
 		}
 		else
 		{
 			$tmpError = $this->m_Statement->errorInfo();
-			throw new \Exception('Error executing prepared SQL statement:' . "\n" . $tmpError[2]);
+			throw new Exception('Error executing prepared SQL statement:' . "\n" . $tmpError[2]);
 			$rs = false;
 		}
 		
@@ -214,7 +473,7 @@ class Orm
 		else
 		{
 			$tmpError = $this->m_Statement->errorInfo();
-			throw new \Exception('Error executing prepared SQL statement:' . "\n" . $tmpError[2]);
+			throw new Exception('Error executing prepared SQL statement:' . "\n" . $tmpError[2]);
 			$rs = false;
 		}
 		
@@ -325,17 +584,24 @@ class Orm
 		//	This allows others functions to know what they are chaining to for
 		//	Logic to decide what to do with the arguments.
 		$this->m_ChainMode = DB_WHERE;
+
+		$val_data = $this->_analyseValue($value);
 		
 		$tmpCriteria['field'] = $field;
 		$tmpCriteria['operator'] = $operator;
-		$tmpCriteria['value'] = $value;
+		$tmpCriteria['value'] = $val_data['val'];
 		$tmpCriteria['join'] = $join;
-		$tmpCriteria['ident'] = time() + rand(0, 20000);
+		$tmpCriteria['ident'] = $field . '_' . $this->_nextFieldId();
+		$tmpCriteria['type'] = $val_data['type'];
 		
 		$this->m_Criteria[] = $tmpCriteria;
 		
 		//Return for chaining
 		return $this;
+	}
+	
+	public function orWhere($field, $operator, $value) {
+		return $this->where($field, $operator, $value, DB_OR);
 	}
 	
 	public function orderBy($field, $order=DB_ASC)
@@ -364,6 +630,7 @@ class Orm
 		//Return for chaining
 		return $this;
 	}
+
 	
 	public function set($fields, $value=null)
 	{
@@ -372,24 +639,28 @@ class Orm
 		switch ($this->m_QueryType)
 		{
 			case DB_INSERT:
+				
 			case DB_UPDATE:
 				if (is_array($fields))
 				{
 					foreach ($fields as $key => $val)
 					{
+						$val_info = $this->_analyseValue($val);
 						$set['field'] = $key;
-						$set['value'] = $val;
-						$set['ident'] = time() + rand(0, 20000);
-                        //BUG: The ident should be saved in a lookup table
-                        //  and user to garanty uniqueness
+						$set['value'] = $val_info['val'];
+						$set['ident'] = $key . '_' . $this->_nextFieldId();
+						$set['type'] = $val_info['type'];
+						
 						$this->m_Set[] = $set;
 					}
 				}
 				else
 				{
+					$val_info = $this->_analyseValue($value);
 					$set['field'] = $fields;
-					$set['value'] = $value;
-					$set['ident'] = time() + rand(0, 20000);
+					$set['value'] = $val_info['val'];
+					$set['ident'] = $fields . '_' . $this->_nextFieldId();
+					$set['type'] = $val_info['type'];
 					
 					$this->m_Set[] = $set;
 				}
@@ -454,7 +725,7 @@ class Orm
 		return $this->on($field, $operator, $value, DB_OR);
 	}
 	
-	public function exec()
+	public function exec($result_type=DB_RS)
 	{
 		$rs = null;
 		
@@ -471,7 +742,7 @@ class Orm
 				else
 				{
 					$tmpError = $this->m_Statement->errorInfo();
-					throw new \Exception('Error executing prepared SQL statement:' . "\n" . $tmpError[2] . "\n" . $this->m_Query);
+					throw new Exception('Error executing prepared SQL statement:' . "\n" . $tmpError[2] . "\n" . $this->m_Query);
 					$rs = false;
 				}
 				break;
@@ -488,7 +759,7 @@ class Orm
 				else
 				{
 					$tmpError = $this->m_Statement->errorInfo();
-					throw new \Exception('Error executing prepared SQL statement:' . "\n" . $tmpError[2]);
+					throw new Exception('Error executing prepared SQL statement:' . "\n" . $tmpError[2]);
 					$rs = false;
 				}
 				break;
@@ -504,7 +775,7 @@ class Orm
 				else
 				{
 					$tmpError = $this->m_Statement->errorInfo();
-					throw new \Exception('Error executing prepared SQL statement: ' . "\n" . $tmpError[2]);
+					throw new Exception('Error executing prepared SQL statement: ' . "\n" . $tmpError[2]);
 					$rs = false;
 				}
 				break;
@@ -520,9 +791,38 @@ class Orm
 				else
 				{
 					$tmpError = $this->m_Statement->errorInfo();
-					throw new \Exception('Error executing prepared SQL statement: ' . "\n" . $tmpError[2]);
+					throw new Exception('Error executing prepared SQL statement: ' . "\n" . $tmpError[2]);
 					$rs = false;
 				}
+				break;
+		}
+		
+		switch ($result_type) {
+			case DB_RS:
+				// Do nothing
+				break;
+				
+			case DB_ROW:
+				if (count($rs) > 0)
+					return $rs[0];
+				else
+					return false;
+				break;
+				
+			case DB_VAR:
+				if (count($rs) > 0)
+					$row = $rs[0];
+				else
+					return null;
+				
+				// return the first array element value
+				foreach ($row as $val) {
+					return $val;
+				}
+				break;
+				
+			default:
+				throw new Exception('Error ResultType not recognized');
 				break;
 		}
 		
@@ -548,8 +848,42 @@ class Orm
 		$this->m_Joins = array();
 		$this->m_ChainMode = DB_NONE;
 		$this->m_Statement = null;
+		$this->m_NextFieldIdent = 1;
+	}
+
+	protected function _nextFieldId() {
+		return $this->m_NextFieldIdent++;
 	}
 	
+/**
+	 * _analyseValue looks at a value of any type, and returns the type and actual (native) value
+	 * as an array with 'type', 'val' elements by name.
+	 */
+	private function _analyseValue($value) {
+		$res = ['type' => PDO::PARAM_STR, 'val' => $value];
+
+		// Default type info (usually a string)
+		
+		// Get the value information 
+		if ($value instanceof DB_Typed_Value) {
+			$res['type'] = $value->PDOParam();
+			$res['val'] = $value->GetValue();
+		} else {
+			// Not a Typed_Value, try to guess the correct type
+			if (is_null($value)) {
+				$res['type'] = PDO::PARAM_NULL;
+			} 
+			elseif (is_int($value)) {
+				$res['type'] = PDO::PARAM_INT;
+			}
+			elseif (is_bool($value)) {
+				$res['type'] = PDO::PARAM_BOOL;
+			}
+		}
+		
+		return $res;
+	}
+
 	private function _buildFields()
 	{
 		$strFields = '';
@@ -818,6 +1152,8 @@ class Orm
 		$strResult .= $this->_buildWhere() . ' ';
 		$strResult .= $this->_buildOrderBy() . ' ';
 		$strResult .= $this->_buildLimit() . ' ';
+
+		//print($strResult);
 		
 		return $strResult;
 	}
@@ -838,8 +1174,9 @@ class Orm
 		$strResult = 'INSERT INTO `'. $this->m_Table . '` ';
 		$strResult .= $this->_buildInsertFields() . ' ';
 		$strResult .= $this->_buildSetValues() . ' ';
-		
 				
+		//print($strResult);
+
 		return $strResult;
 	}
 	
@@ -860,29 +1197,33 @@ class Orm
 		//loop each field in the array and place in the statement the variables
 		$intNumCriteria = count($this->m_Criteria);
 		
+		//print_r($this->m_Criteria);
+
 		if ($intNumCriteria > 0)
 		{
 			foreach ($this->m_Criteria as &$tmpCriteria)
 			{
 				//Build the List of fields and Variable names for Prepared statements
-				$this->m_Statement->bindParam(':sel_' . $tmpCriteria['ident'], $tmpCriteria['value']);
+				$this->m_Statement->bindParam(':sel_' . $tmpCriteria['ident'], $tmpCriteria['value'], $tmpCriteria['type']);
 			}
 		}
 	}
 	
 	private function _pushSetValues()
 	{
+		//var_dump($this->m_Set);
 		foreach ($this->m_Set as &$set)
 		{
-			$this->m_Statement->bindParam(':upd_' . $set['ident'], $set['value']);
+			$this->m_Statement->bindParam(':upd_' . $set['ident'], $set['value'], $set['type']);
 		}
 	}
 	
 	private function _pushInsertValues()
 	{
+		//var_dump($this->m_Set);
 		foreach ($this->m_Set as &$set)
 		{
-			$this->m_Statement->bindParam(':ins_' . $set['ident'], $set['value']);
+			$this->m_Statement->bindParam(':ins_' . $set['ident'], $set['value'], $set['type']);
 		}
 	}
 

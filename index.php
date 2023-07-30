@@ -39,7 +39,7 @@ Config::load('autoload');
 $extensions = Config::get('extensions', 'autoload');
 if (count($extensions) > 0) {
     foreach ($extensions as $extension) {
-        //TODO: load the extension
+        // Load the extension
         $class_name = "Ext\\" . $extension . "\\" . $extension;
         $obj = new $class_name();
     }
@@ -53,6 +53,7 @@ if (count($helpers) > 0) {
     }
 }
 
+// Load the Routes
 Config::load('routes');
 
 

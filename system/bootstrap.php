@@ -23,7 +23,7 @@ function mojo_autoload($class_name)
 			break;
 			
 		case 'Ext':
-		    $base = ROOT_DIR . 'ext' . DS;
+            $base = ROOT_DIR . 'ext' . DS;
 		    break;
 
 		case 'App':
@@ -46,3 +46,16 @@ function mojo_autoload($class_name)
 	return true;
 }
 spl_autoload_register('mojo_autoload');
+
+
+
+// Debug Detection
+define('DEVELOPMENT', TRUE);
+//define('DEVELOPMENT', FALSE);
+
+
+if (DEVELOPMENT) {
+    error_reporting(E_ALL);
+    ini_set('display_startup_errors', 'On');
+    ini_set('display_errors', 'On');
+}

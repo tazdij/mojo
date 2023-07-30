@@ -12,12 +12,18 @@ class Response
 	public $Output = null;
 	public $Code = 200;
 	public $Charset = 'utf8';
+	protected $_tpl_engine = NULL;
 
-	public function __construct($headers, &$cookieMgr)
+	public function __construct($headers, &$cookieMgr, &$tpl_engine=NULL)
 	{
 		$this->Cookies =& $cookieMgr;
 		$this->Headers = $headers;
 		$this->Output = '';
+		$this->_tpl_engine =& $tpl_engine;
+	}
+
+	public function getTemplateEngine() {
+		return $this->_tpl_engine;
 	}
 
 	public function &code($code) {
@@ -54,8 +60,25 @@ class Response
 		return $this;
 	}
 
-	public function &template($template, $data=array(), $return=FALSE) {
-		
+	public function template($template, $data=array(), $return=FALSE) {
+		// Assign the variables
+		// foreach ($data as $key => $val) {
+		// 	$this->_tpl_engine->assign($key, $val);
+		// }
+
+		if (!$return) {
+			$this->Output = $this->_tpl_engine->fetch($template, $data);
+		} else {
+			return $this->_tpl_engine->fetch($template, $data);
+		}
+	}
+
+	public function redirect($dest, $code=301) {
+		$this->Code = $code;
+		$this->Headers['Location'] = $dest;
+		$this->Output = '';
+
+		$this->send();
 	}
 
 	public function send() {

@@ -3,6 +3,8 @@
 namespace Mojo\System;
 
 use Mojo\IO\Net\Http\Response;
+use Mojo\Template\TemplateEngine;
+use Mojo\Template\Plates\PlatesEngine;
 
 class RequestPipe
 {
@@ -17,7 +19,13 @@ class RequestPipe
 	 */
 	public static function processRequest(&$request, $return = FALSE)
 	{
-		$response = new Response(array(), $request->Cookies);
+
+		// We should default to Plates (it is super lightweight and just php)
+
+		//TEMP: Create a template instance for all responses?
+		$tpl = new TemplateEngine(new PlatesEngine());
+
+		$response = new Response(array(), $request->Cookies, $tpl);
 
 		// Get the list of Routes this matches
 		$routes = Router::matchRequest($request);

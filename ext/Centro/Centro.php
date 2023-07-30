@@ -25,7 +25,7 @@ class Centro extends Extension {
 
     protected function setupRoutes() {
         //Router::add(new RegexRoute(Request::GET, '/hm/user/(?<name>[^/]+)/other', array($this, 'user')));
-        Router::add(new Route(Request::GET, '/Centro/Admin', array('Ext\Centro\Controllers\AdminController', 'index')));
+        Router::add(new Route(Request::GET, '/Centro/Admin', ['Ext\Centro\Controllers\AdminController', 'index']));
         /*Router::add(new Route(Request::POST, '/auth/login', array('AuthController', 'login')));
         Router::add(new Route(Request::POST, '/auth/renew', array('AuthController', 'renew')));
         Router::add(new Route(Request::POST, '/auth/logout', array('AuthController', 'logout')));

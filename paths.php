@@ -1,7 +1,7 @@
 <?php
 
 define('DS', DIRECTORY_SEPARATOR);
-define('ROOT_DIR', dirname($_SERVER['SCRIPT_FILENAME']) . DS);
+define('ROOT_DIR', dirname(__FILE__) . DS);
 define('SYS_HELPER_DIR', ROOT_DIR . 'helpers' . DS);
 define('SYS_LIBRARY_DIR', ROOT_DIR . 'libraries' . DS);
 define('APP_DIR', ROOT_DIR . 'app' . DS);

@@ -6,10 +6,16 @@ class UnsupportedHttpVerbException extends \Exception {}
 
 class Request
 {
+	/**
+	 * The Verbs only benefit from being a bitmask when setting filters
+	 * to determine if a verb is handled, allowing or'ing them together
+	 * and simplified testing on if handled by a route.
+	 */
 	const GET		= 0b00000001;
 	const POST		= 0b00000010;
 	const PUT		= 0b00000100;
 	const DELETE	= 0b00001000;
+	const HEAD		= 0b00010000;
 
 	/**
 	 * Create the request from server variables
@@ -115,13 +121,14 @@ class Request
 		$this->Body = $post_data;
 		//$this->Headers = getallheaders();
 
-		$headers = '';
+		$headers = [];
 		foreach ($_SERVER as $name => $value) {
 			if (substr($name, 0, 5) == 'HTTP_') {
 				$headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
 			}
 		}
-		$this->Header = $headers;
+		$this->Headers = $headers;
+		//var_dump($this->Headers);
 
 		// Build query from QueryString & post values sent into the constructor
 		parse_str($this->QueryString, $this->Query);

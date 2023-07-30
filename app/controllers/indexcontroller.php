@@ -8,11 +8,19 @@ use Ext\Centro\Utils\ArrayParse;
 
 class IndexController extends Controller {
 
+    public function template(&$req, &$res) {
+        $data = [
+            'test_var' => 'Some Value Here, of course.'
+        ];
+        $res->template('test.tpl', $data);
+        return true;
+    }
+
     public function index(&$req, &$res) {
         //die('here');
     
-        print('INDEX::INDEX Ran<br><br>');
-        $this->session->printer('This is a test<br><br>');
+        print('<h1>Coming Soon</h1>');
+        //$this->session->printer('This is a test<br><br>');
 
         //$con = new Con('10.138.236.115', 'barberbookyapi', 'MY_GamB1t', 'barberbookyapp', '');
         //$this->loadModel('User');
@@ -26,13 +34,17 @@ class IndexController extends Controller {
         
         
 
+        
+        /*
         $data = array();
 
         $data['username'] = 'dduvall';
         $data['first_name'] = 'Don';
         $data['last_name'] = 'Duvall';
         $data['testarr'] = array('Sub'=>TRUE, 'count' => 0);
-
+        */
+        
+        /*
         ArrayWrite::SaveAs('testwrite.php', $data);
         
         $arr = ArrayParse::Load('testwrite.php');
@@ -40,15 +52,15 @@ class IndexController extends Controller {
         $arr['testarr']['count']++;
         
         ArrayWrite::SaveAs('testwrite.php', $arr);
-        
+        */
 
         // Possible rendering
         //Template::render('index/index', $data);
 
 
-        print_r($data);
-        print("\n");
-        print_r($arr);
+        //print_r($data);
+        //print("\n");
+        //print_r($arr);
 
         return true;
     }

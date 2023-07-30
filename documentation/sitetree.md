@@ -16,7 +16,7 @@ Class). To start with there needs to be:
 * HtmlNode
 * MarkdownNode
 * TemplateNode (TemplateLite)
-* WYSIWYGNode - Node exactly HTML. It is Structured JSON, generating HTML
+* WYSIWYGNode - Not exactly HTML. It is Structured JSON, generating HTML
 * EntityNode (Loads an Entity into a template)
 * EntityCollectionNode (Like a WP ArchivePage, but with a Selection Query)
 * DynamicEntityNode (Using a URL Parameter, can load a node of a specific type)
@@ -40,3 +40,6 @@ Here, it could be a simple SQL statement to try and get the correct node.
 
 It is possible that having UrlRoutes tested first and then Nodes, is faster.
 UrlRoutes will be stored as a PHP Array in a local config file.
+
+- **FlatMap Storage** will be generated from the sitetree and cached into a PHP file in the app/cache/ directory
+- **Cache Options** it is possible that the context or installation will choose a caching method. (ie `Redis`, `PHP`, `SerializedArray`, or possibly `JSON`)
